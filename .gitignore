@@ -101,3 +101,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+data/hmnist/hmnist_mnar.npz
