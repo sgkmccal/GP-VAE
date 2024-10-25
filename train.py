@@ -32,14 +32,14 @@ from lib.models import *
 FLAGS = flags.FLAGS
 
 # HMNIST config
-# flags.DEFINE_integer('latent_dim', 256, 'Dimensionality of the latent space')
-# flags.DEFINE_list('encoder_sizes', [256, 256], 'Layer sizes of the encoder')
-# flags.DEFINE_list('decoder_sizes', [256, 256, 256], 'Layer sizes of the decoder')
-# flags.DEFINE_integer('window_size', 3, 'Window size for the inference CNN: Ignored if model_type is not gp-vae')
-# flags.DEFINE_float('sigma', 1.0, 'Sigma value for the GP prior: Ignored if model_type is not gp-vae')
-# flags.DEFINE_float('length_scale', 2.0, 'Length scale value for the GP prior: Ignored if model_type is not gp-vae')
-# flags.DEFINE_float('beta', 0.8, 'Factor to weigh the KL term (similar to beta-VAE)')
-# flags.DEFINE_integer('num_epochs', 20, 'Number of training epochs')
+flags.DEFINE_integer('latent_dim', 256, 'Dimensionality of the latent space')
+flags.DEFINE_list('encoder_sizes', [256, 256], 'Layer sizes of the encoder')
+flags.DEFINE_list('decoder_sizes', [256, 256, 256], 'Layer sizes of the decoder')
+flags.DEFINE_integer('window_size', 3, 'Window size for the inference CNN: Ignored if model_type is not gp-vae')
+flags.DEFINE_float('sigma', 1.0, 'Sigma value for the GP prior: Ignored if model_type is not gp-vae')
+flags.DEFINE_float('length_scale', 2.0, 'Length scale value for the GP prior: Ignored if model_type is not gp-vae')
+flags.DEFINE_float('beta', 0.8, 'Factor to weigh the KL term (similar to beta-VAE)')
+flags.DEFINE_integer('num_epochs', 20, 'Number of training epochs')
 
 # SPRITES config GP-VAE
 # flags.DEFINE_integer('latent_dim', 256, 'Dimensionality of the latent space')
@@ -52,14 +52,14 @@ FLAGS = flags.FLAGS
 # flags.DEFINE_integer('num_epochs', 20, 'Number of training epochs')
 
 # Physionet config
-flags.DEFINE_integer('latent_dim', 35, 'Dimensionality of the latent space')
-flags.DEFINE_list('encoder_sizes', [128, 128], 'Layer sizes of the encoder')
-flags.DEFINE_list('decoder_sizes', [256, 256], 'Layer sizes of the decoder')
-flags.DEFINE_integer('window_size', 24, 'Window size for the inference CNN: Ignored if model_type is not gp-vae')
-flags.DEFINE_float('sigma', 1.005, 'Sigma value for the GP prior: Ignored if model_type is not gp-vae')
-flags.DEFINE_float('length_scale', 7.0, 'Length scale value for the GP prior: Ignored if model_type is not gp-vae')
-flags.DEFINE_float('beta', 0.2, 'Factor to weigh the KL term (similar to beta-VAE)')
-flags.DEFINE_integer('num_epochs', 40, 'Number of training epochs')
+# flags.DEFINE_integer('latent_dim', 35, 'Dimensionality of the latent space')
+# flags.DEFINE_list('encoder_sizes', [128, 128], 'Layer sizes of the encoder')
+# flags.DEFINE_list('decoder_sizes', [256, 256], 'Layer sizes of the decoder')
+# flags.DEFINE_integer('window_size', 24, 'Window size for the inference CNN: Ignored if model_type is not gp-vae')
+# flags.DEFINE_float('sigma', 1.005, 'Sigma value for the GP prior: Ignored if model_type is not gp-vae')
+# flags.DEFINE_float('length_scale', 7.0, 'Length scale value for the GP prior: Ignored if model_type is not gp-vae')
+# flags.DEFINE_float('beta', 0.2, 'Factor to weigh the KL term (similar to beta-VAE)')
+# flags.DEFINE_integer('num_epochs', 40, 'Number of training epochs')
 
 # Flags with common default values for all three datasets
 flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate for training')
