@@ -102,3 +102,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 data/hmnist/hmnist_mnar.npz
+data/data/sprites/sprites.npz
+data/physionet/physionet.npz
+Images/2_digit.jpg
+Images/jax.jpg
