@@ -120,3 +120,4 @@ if __name__ == "__main__":
     train_gpvae_classifier(model, dataset, optimizer, epochs=20, alpha=1.0)
 
 
+#sync

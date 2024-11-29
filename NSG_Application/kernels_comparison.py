@@ -105,3 +105,5 @@ opt_weights, opt_means, opt_scales = train_spectral_mixture(X, y, Q=2)
 print("Optimized Weights:", opt_weights)
 print("Optimized Means:", opt_means)
 print("Optimized Scales:", opt_scales)
+
+#sync

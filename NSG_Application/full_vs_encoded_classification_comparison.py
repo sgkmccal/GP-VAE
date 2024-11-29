@@ -355,3 +355,4 @@ acc_encoded_bandedjoint = accuracy_score(y_test, y_pred_encoded_bandedjoint)
 # print(f"Accuracy (Raw Data): {acc_basic:.4f}")
 print(f"Accuracy (Banded Joint Encoded Data): {acc_encoded_bandedjoint:.4f}")
 
+# sync
