@@ -394,7 +394,7 @@ model = VAE(latent_dim=latent_representation_size, # dimensionality of latent sp
             encoder = DiagonalEncoder,    # set to class or instance of class? original code uses class itself?
             decoder_sizes=(256,256,256),  # sizes of decoder layers (256,256,256)
             # decoder=decoder,
-            decoder = BernoulliDecoder,        # why enc = Class of Encoder but dec = initialisation of Decoder?
+            decoder = BernoulliDecoder,       
             image_preprocessor=image_preprocessor, 
             # window_size=3, # "window size for inference CNN: ignored if model type != gp-vae", def.=3
             beta=0.8, # factor to weight KL term (similar to beta-VAE) def=0.8
