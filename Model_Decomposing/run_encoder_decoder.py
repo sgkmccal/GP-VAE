@@ -11,7 +11,7 @@ tfd = tfp.distributions
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import io, color, transform
-from encoder_isolated import DiagonalEncoder, BernoulliDecoder, JointEncoder, BandedJointEncoder 
+from Model_Decomposing.train_main import DiagonalEncoder, BernoulliDecoder, JointEncoder, BandedJointEncoder 
 from enum import Enum
 from models import ImagePreprocessor, VAE, HI_VAE, GP_VAE
 import time, datetime
