@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import math
+from sklearn.preprocessing import StandardScaler
 
 df = pd.read_csv("NSG_Application\\temp_passfail_data.csv")
 df = df.iloc[1:, 3:58]
@@ -13,6 +14,11 @@ df_subset = df.iloc[:60, :]
 df_subset_shape = df_subset.shape
 
 np.random.seed(1234)
+
+scaler = StandardScaler()
+df = scaler.fit_transform(df)
+df = pd.DataFrame(df)
+
 missing_rate = 0.2
 missing_vals_mask_full = np.random.rand(*df_shape) > 0.4
 missing_vals_mask = np.random.rand(*df_subset_shape) > 0.4
@@ -39,15 +45,15 @@ def plot_boolean_mask(mask, title="MNAR"):
     plt.show()
 
 # Pad start and end of df_full_masked so 0s on edges are handled
-df_full_masked.ffill(axis=1, inplace=True)
-df_full_masked.bfill(axis=1, inplace=True)
+# df_full_masked.ffill(axis=1, inplace=True)
+# df_full_masked.bfill(axis=1, inplace=True)
 
 # Perform linear interpolation
 nsg_df_reconstructed_linear_interp = df_full_masked.interpolate(method='linear', axis=1)
 
 # Handle any remaining NaNs after interpolation
-nsg_df_reconstructed_linear_interp = nsg_df_reconstructed_linear_interp.bfill(axis=1)
-nsg_df_reconstructed_linear_interp = nsg_df_reconstructed_linear_interp.ffill(axis=1)
+# nsg_df_reconstructed_linear_interp = nsg_df_reconstructed_linear_interp.bfill(axis=1)
+# nsg_df_reconstructed_linear_interp = nsg_df_reconstructed_linear_interp.ffill(axis=1)
 
 print("Linear interpolation:", nsg_df_reconstructed_linear_interp)
 
