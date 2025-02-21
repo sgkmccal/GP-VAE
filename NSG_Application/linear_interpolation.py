@@ -5,6 +5,8 @@ import seaborn as sns
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import math
 from sklearn.preprocessing import StandardScaler
+from sklearn.gaussian_process import GaussianProcessClassifier as gpc
+from sklearn.gaussian_process.kernels import RBF
 
 df = pd.read_csv("NSG_Application\\temp_passfail_data.csv")
 df = df.iloc[1:, 3:58]
@@ -92,11 +94,11 @@ for column in df.columns:
     mae_list.append(mae)
     rmse_list.append(rmse)
 
-# Average the MAE and RMSE across all columns
+#Average the MAE and RMSE across all columns
 average_mae = np.mean(mae_list)
 average_rmse = np.mean(rmse_list)
 
-# Calculate MAE and RMSE as percentages based on the range of values (assuming range is 500-650)
+#Calculate MAE and RMSE as percentages based on the range of values (assuming range is 500-650)
 range_of_values = 650 - 500  # Adjust this range to match your data's range
 average_mae_percentage = (average_mae / range_of_values) * 100
 average_rmse_percentage = (average_rmse / range_of_values) * 100
@@ -105,8 +107,90 @@ average_rmse_percentage = (average_rmse / range_of_values) * 100
 print(f"Average MAE (percentage): {average_mae_percentage:.2f}%")
 print(f"Average RMSE (percentage): {average_rmse_percentage:.2f}%")
 
-# Compare the original data and the reconstructed (interpolated) data
+#Compare the original data and the reconstructed (interpolated) data
 original_reconstructed_mae_linear = mean_absolute_error(df, nsg_df_reconstructed_linear_interp)
 original_reconstructed_rmse_linear = math.sqrt(mean_squared_error(df, nsg_df_reconstructed_linear_interp))
 print(f"Original vs Reconstructed MAE: {original_reconstructed_mae_linear}")
 print(f"Original vs Reconstructed RMSE: {original_reconstructed_rmse_linear}")
+
+
+
+# Full dataset
+df_full = np.load("NSG_Application\\FullDataset.npz")
+# print(df_full)
+
+X_full = df_full["array1"]
+scaler2 = StandardScaler()
+X_full = scaler2.fit_transform(X_full)
+
+# mask2 = np.random.rand(*X_full.shape) > 0.4
+# X_full_masked = X_full.copy()
+# X_full_masked = X_full * mask2
+
+# X_full_masked = pd.DataFrame(X_full_masked)
+# X_full_lerp = X_full_masked.interpolate(method='linear', axis=1)
+
+# print(X_full_masked)
+
+# x_full_mae = mean_absolute_error(X_full, X_full_lerp)
+# print("X_full MAE: ", x_full_mae)
+
+# x_full_rmse = math.sqrt(mean_squared_error(X_full, X_full_lerp))
+# print("X_full RMSE: ", x_full_rmse)
+
+
+# reconstructed X GP
+# X_lerp_train = X_full_lerp.iloc[:500, :]
+# X_lerp_test = X_full_lerp.iloc[500:, :]
+# Y_full = df_full["array_2"]
+# Y_full_train = Y_full[:500]
+# Y_full_test = Y_full[500:]
+
+# rbf = RBF()
+# gp = gpc(kernel=rbf)
+# gp.fit(X_lerp_train, Y_full_train)
+# y_pred = gp.predict(X_lerp_test)
+# gp_score = gp.score(X_lerp_test, Y_full_test)
+# print("gp score = ", gp_score)
+
+
+# DATA MISSING IN BLOCKS, SENSOR FAILURE ETC.
+X_block_missing = X_full.copy()
+
+# Create a mask for structured missingness (block missingness)
+missing_fraction = 0.7  # Proportion of elements to remove per row
+mask = np.ones_like(X_block_missing, dtype=bool)  # Start with all True (no missing values)
+
+for col in range(X_block_missing.shape[1]):  # For each column
+    # Select a random range of rows to mask
+    num_missing = int(missing_fraction * X_block_missing.shape[0])  # Number of elements to mask
+    start_idx = np.random.randint(0, X_block_missing.shape[0] - num_missing + 1)
+    mask[start_idx:start_idx + num_missing, col] = False  # Mask a vertical section
+
+# Apply the mask
+X_block_missing_masked = X_block_missing.copy()
+X_block_missing_masked[~mask] = np.nan
+
+X_block_missing_masked = pd.DataFrame(X_block_missing_masked)
+
+X_block_missing_masked_lerp = X_block_missing_masked.interpolate(method='linear', axis=1).fillna(method='bfill').fillna(method='ffill')
+X_block_missing_masked_lerp = np.asarray(X_block_missing_masked_lerp)
+
+x_block_missing_mae = mean_absolute_error(X_full, X_block_missing_masked_lerp)
+print("X_full MAE: ", x_block_missing_mae)
+
+x_block_missing_rmse = math.sqrt(mean_squared_error(X_full, X_block_missing_masked_lerp))
+print("X_full RMSE: ", x_block_missing_rmse)
+
+X_block_missing_train = X_block_missing_masked_lerp[:500, :]
+X_block_missing_test = X_block_missing_masked_lerp[500:, :]
+Y_full = df_full["array_2"]
+Y_full_train = Y_full[:500]
+Y_full_test = Y_full[500:]
+
+rbf = RBF()
+gp = gpc(kernel=rbf)
+gp.fit(X_block_missing_train, Y_full_train)
+# y_pred = gp.predict(X_block_missing_test)
+gp_score = gp.score(X_block_missing_test, Y_full_test)
+print("gp score = ", gp_score)

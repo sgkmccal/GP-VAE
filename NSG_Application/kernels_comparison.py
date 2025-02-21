@@ -11,6 +11,7 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern, R
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 from scipy.optimize import minimize
+import sklearn.gaussian_process.kernels as kernels
 
 df = pd.read_csv("NSG_Application\\temp_passfail_data.csv")
 # print(df.shape)
@@ -106,4 +107,9 @@ print("Optimized Weights:", opt_weights)
 print("Optimized Means:", opt_means)
 print("Optimized Scales:", opt_scales)
 
-#sync
+
+# SM kernel integrated with SKLearn
+class SpectralMixtureKernel(kernels.Kernel, kernels.NormalizedKernelMixin):
+    def __init__()
+
+

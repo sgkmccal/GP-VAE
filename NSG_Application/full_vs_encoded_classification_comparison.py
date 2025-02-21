@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, RationalQuadratic, Kernel
 from sklearn.metrics import accuracy_score
 import tensorflow as tf
 from tensorflow_probability import distributions as tfd
@@ -53,33 +53,45 @@ def make_2d_cnn(output_size, hidden_sizes, kernel_size=3):
     return tf.keras.Sequential(layers)
 
 
-df = pd.read_csv("NSG_Application\\temp_passfail_data.csv")
+# df = pd.read_csv("NSG_Application\\temp_passfail_data.csv")
 # print(df.shape)
 
-timestamps = df.iloc[:, 1]
-timestamps = pd.to_datetime(timestamps, format='%d.%m.%Y %H:%M')
-timestamps = timestamps.view('int64') // 10**9
-timestamps = timestamps - timestamps.iloc[0]
-print(timestamps)
+# timestamps = df.iloc[:, 1]
+# timestamps = pd.to_datetime(timestamps, format='%d.%m.%Y %H:%M')
+# timestamps = timestamps.view('int64') // 10**9
+# timestamps = timestamps - timestamps.iloc[0]
+# print(timestamps)
 
-X = df.iloc[:, 3:58]
-X['ScanDateTimeGlasses'] = timestamps
+# X = df.iloc[:, 3:58]
+# X['ScanDateTimeGlasses'] = timestamps
+# print(X.shape)
+
+# print(X.columns)
+
+df_full = np.load("NSG_Application\\FullDataset.npz")
+X = df_full["array1"]
+Y = df_full["array_2"]
+
 print(X.shape)
 
-print(X.columns)
-
-Y = df.iloc[:, 60]
+# Y = df.iloc[:, 60]
 # print(Y)
 # print("Last X col = ", X.iloc[0,53])
 # print("X: ", X.shape, "Y: ", Y.shape)
 
 n_train_samples = 600
 
-x_train = X.iloc[:n_train_samples, :].to_numpy().astype('float32')
-y_train = Y.iloc[:n_train_samples].to_numpy().astype('float32').reshape(-1,1)
+# x_train = X.iloc[:n_train_samples, :].to_numpy().astype('float32')
+# y_train = Y.iloc[:n_train_samples].to_numpy().astype('float32').reshape(-1,1)
 
-x_test = X.iloc[n_train_samples:, :].to_numpy().astype('float32')
-y_test = Y.iloc[n_train_samples:].to_numpy().astype('float32').reshape(-1,1)
+x_train = X[:n_train_samples, :]
+y_train = Y[:n_train_samples].reshape(-1,1)
+
+# x_test = X.iloc[n_train_samples:, :].to_numpy().astype('float32')
+# y_test = Y.iloc[n_train_samples:].to_numpy().astype('float32').reshape(-1,1)
+
+x_test = X[n_train_samples:, :]
+y_test = Y[n_train_samples:]
 
 scaler = StandardScaler()
 x_train = scaler.fit_transform(x_train)
@@ -126,7 +138,6 @@ class DiagonalEncoder(tf.keras.Model):
         loc = mapped[..., :self.z_size]  # Mean
         scale_diag = tf.nn.softplus(mapped[..., self.z_size:])  # Variance
         return loc 
-
 
 class JointEncoder(tf.keras.Model):
     def __init__(self, z_size, hidden_sizes=(64, 64), window_size=3, transpose=False, **kwargs):
@@ -236,7 +247,7 @@ class BandedJointEncoder(tf.keras.Model):
 
 # ---- Base Encoder ----
 # encoder training
-latent_dims = 5
+latent_dims = 40
 encoder = BaseEncoder(latent_dims)
 encoder.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01), loss='mse')
 
@@ -248,7 +259,8 @@ x_test_encoded = encoder(x_test).numpy()
 
 # Define a Gaussian Process Classifier
 # kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3))
-kernel = RBF(length_scale = 1.0, length_scale_bounds=(1e-3, 1e4))
+# kernel = RBF(length_scale = 1.0, length_scale_bounds=(1e-3, 1e4))
+kernel = RationalQuadratic()
 gpc_basic = GaussianProcessClassifier(kernel=kernel, random_state=42)
 gpc_encoded = GaussianProcessClassifier(kernel=kernel, random_state=42)
 
@@ -307,7 +319,7 @@ joint_encoder.fit(tf.identity(x_train), tf.identity(y_train), epochs=50, batch_s
 x_train_encoded_joint = joint_encoder(x_train, training = False).numpy()
 x_train_encoded_joint = x_train_encoded_joint.reshape(600,latent_dims) # "undoing" addition of time_length term
 x_test_encoded_joint = joint_encoder(x_test, training = False).numpy()
-x_test_encoded_joint = x_test_encoded_joint.reshape(171,latent_dims) # "undoing" addition of time_length term
+x_test_encoded_joint = x_test_encoded_joint.reshape(43,latent_dims) # "undoing" addition of time_length term
 
 # define GPC for new encoder
 gpc_encoded_joint = GaussianProcessClassifier(kernel=kernel, random_state=42)
@@ -327,32 +339,170 @@ print(f"Accuracy (Joint Encoded Data): {acc_encoded_joint:.4f}")
 
 
 # ---- Joint Encoder ----
-bandedjoint_encoder = BandedJointEncoder(latent_dims)
-bandedjoint_encoder.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01), loss='mse')
+# bandedjoint_encoder = BandedJointEncoder(latent_dims)
+# bandedjoint_encoder.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01), loss='mse')
 
 # Fit encoder
-bandedjoint_encoder.fit(tf.identity(x_train), tf.identity(y_train), epochs=50, batch_size=32, verbose=0)
+# bandedjoint_encoder.fit(tf.identity(x_train), tf.identity(y_train), epochs=50, batch_size=32, verbose=0)
 
 # produce encoded inputs
-x_train_encoded_bandedjoint = bandedjoint_encoder(x_train, training = False).numpy()
-x_train_encoded_bandedjoint = x_train_encoded_bandedjoint.reshape(600,latent_dims) # "undoing" addition of time_length term
-x_test_encoded_bandedjoint = bandedjoint_encoder(x_test, training = False).numpy()
-x_test_encoded_bandedjoint = x_test_encoded_bandedjoint.reshape(171,latent_dims) # "undoing" addition of time_length term
+# x_train_encoded_bandedjoint = bandedjoint_encoder(x_train, training = False).numpy()
+# x_train_encoded_bandedjoint = x_train_encoded_bandedjoint.reshape(600,latent_dims) # "undoing" addition of time_length term
+# x_test_encoded_bandedjoint = bandedjoint_encoder(x_test, training = False).numpy()
+# x_test_encoded_bandedjoint = x_test_encoded_bandedjoint.reshape(171,latent_dims) # "undoing" addition of time_length term
 
 # define GPC for new encoder
-gpc_encoded_bandedjoint = GaussianProcessClassifier(kernel=kernel, random_state=42)
+# gpc_encoded_bandedjoint = GaussianProcessClassifier(kernel=kernel, random_state=42)
 
 # train on encoded data
-gpc_encoded_bandedjoint.fit(x_train_encoded_bandedjoint, y_train)
+# gpc_encoded_bandedjoint.fit(x_train_encoded_bandedjoint, y_train)
 
 # produce y predictions for encoded x_test
-y_pred_encoded_bandedjoint = gpc_encoded_bandedjoint.predict(x_test_encoded_bandedjoint)
+# y_pred_encoded_bandedjoint = gpc_encoded_bandedjoint.predict(x_test_encoded_bandedjoint)
 
 # Evaluate and compare performance
 # acc_basic = accuracy_score(y_test, y_pred_basic)
-acc_encoded_bandedjoint = accuracy_score(y_test, y_pred_encoded_bandedjoint)
+# acc_encoded_bandedjoint = accuracy_score(y_test, y_pred_encoded_bandedjoint)
 
 # print(f"Accuracy (Raw Data): {acc_basic:.4f}")
-print(f"Accuracy (Banded Joint Encoded Data): {acc_encoded_bandedjoint:.4f}")
+# print(f"Accuracy (Banded Joint Encoded Data): {acc_encoded_bandedjoint:.4f}")
 
-# sync
+class SpectralMixtureKernel(Kernel):
+    """
+    Spectral Mixture Kernel for use with sklearn's GaussianProcessRegressor.
+    """
+    def __init__(self, num_mixtures=1, weights=None, means=None, variances=None):
+        """
+        Initialize the Spectral Mixture Kernel.
+
+        Parameters:
+        - num_mixtures: Number of mixture components (Q).
+        - weights: Array of weights for the components (default: random initialization).
+        - means: Array of mean frequencies for the components (default: random initialization).
+        - variances: Array of variances (inverse length scales squared) (default: random initialization).
+        """
+        self.num_mixtures = num_mixtures
+        self.weights = weights
+        self.means = means
+        self.variances = variances
+
+    def _initialize_parameters(self, X):
+        """
+        Initialize weights, means, and variances if not provided.
+        """
+        if self.weights is None:
+            self.weights = np.ones(self.num_mixtures) / self.num_mixtures  # Uniform weights
+        if self.means is None:
+            self.means = np.random.uniform(0, 1, (self.num_mixtures, X.shape[1]))
+        if self.variances is None:
+            self.variances = np.random.uniform(1e-2, 1, (self.num_mixtures, X.shape[1]))
+
+    def __call__(self, X, Y=None, eval_gradient=False):
+        """
+        Compute the kernel matrix between inputs X and Y.
+
+        Parameters:
+        - X: Input array of shape (N, D).
+        - Y: Input array of shape (M, D). If None, use X.
+        - eval_gradient: Whether to compute the gradient (not implemented here).
+
+        Returns:
+        - Kernel matrix of shape (N, M).
+        """
+        if Y is None:
+            Y = X
+
+        self._initialize_parameters(X)
+
+        N, D = X.shape
+        M, _ = Y.shape
+        K = np.zeros((N, M))
+
+        for q in range(self.num_mixtures):
+            weight = self.weights[q]
+            mean = self.means[q]
+            variance = self.variances[q]
+
+            # Compute pairwise squared distances
+            diff = X[:, None, :] - Y[None, :, :]  # Shape: (N, M, D)
+            dist2 = np.sum((diff**2) * variance, axis=2)  # Weighted distance, Shape: (N, M)
+
+            # Exponential term
+            exp_term = np.exp(-2 * np.pi**2 * dist2)
+
+            # Cosine term
+            cos_term = np.cos(2 * np.pi * np.sum(diff * mean, axis=2))
+
+            # Weighted sum
+            K += weight * exp_term * cos_term
+
+        if eval_gradient:
+            # Gradient computation is not implemented in this example
+            raise NotImplementedError("Gradient computation is not implemented for this kernel.")
+        
+        return K
+
+    def diag(self, X):
+        """
+        Compute the diagonal of the kernel matrix.
+
+        Parameters:
+        - X: Input array of shape (N, D).
+
+        Returns:
+        - Diagonal of the kernel matrix, shape (N,).
+        """
+        self._initialize_parameters(X)
+        return np.sum(self.weights)
+
+    def is_stationary(self):
+        """
+        Whether the kernel is stationary.
+        """
+        return True
+
+gpc_full_accs = []
+gpc_base_accs = []
+gpc_diag_accs = []
+gpc_joint_accs = []
+
+
+
+for i in range(1, 20):
+    sm_kernel_full = SpectralMixtureKernel(num_mixtures=i)
+    sm_kernel_base = SpectralMixtureKernel(num_mixtures=i)
+    sm_kernel_diag = SpectralMixtureKernel(num_mixtures=i)
+    sm_kernel_joint = SpectralMixtureKernel(num_mixtures=i)
+
+    gpc_full = GaussianProcessClassifier(kernel=sm_kernel_full)
+    gpc_full.fit(x_train, y_train)
+    y_pred_full = gpc_full.predict(x_test)
+    gpc_full_accs.append(accuracy_score(y_test, y_pred_full))
+
+
+    gpc_enc_base = GaussianProcessClassifier(kernel=sm_kernel_base)
+    gpc_enc_base.fit(x_train_encoded, y_train)
+    y_pred_encoded_base_i = gpc_enc_base.predict(x_test_encoded)
+    gpc_base_accs.append(accuracy_score(y_test, y_pred_encoded_base_i))
+
+
+    gpc_enc_diag = GaussianProcessClassifier(kernel=sm_kernel_diag)
+    gpc_enc_diag.fit(x_train_encoded_diag, y_train)
+    y_pred_encoded_diag_i = gpc_enc_diag.predict(x_test_encoded_diag)
+    gpc_diag_accs.append(accuracy_score(y_test, y_pred_encoded_diag_i))
+
+
+    gpc_enc_joint = GaussianProcessClassifier(kernel=sm_kernel_joint)
+    gpc_enc_joint.fit(x_train_encoded_joint, y_train)
+    y_pred_encoded_joint_i = gpc_enc_joint.predict(x_test_encoded_joint)
+    gpc_joint_accs.append(accuracy_score(y_test, y_pred_encoded_joint_i))
+
+
+for i in range(0,19):
+    print(f"N_mix = {i}:") 
+    print("Full: ", gpc_full_accs[i])
+    print("Base: ", gpc_base_accs[i])
+    print("Diag: ", gpc_diag_accs[i])
+    print("Joint: ", gpc_joint_accs[i])
+
+print("Done")
